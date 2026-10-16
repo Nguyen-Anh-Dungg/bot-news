@@ -1,0 +1,40 @@
+name: Deploy bot-news
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Không có dependency, không cần build: copy thẳng file chạy lên server.
+      # .env nằm sẵn trên server, không bị ghi đè.
+      - name: Copy files to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.SSH_KEY_BOT_NEWS }}
+          port: 22
+          source: "index.mjs,ecosystem.config.cjs"
+          target: "~/bot-news"
+
+      - name: Reload PM2
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.SSH_KEY_BOT_NEWS }}
+          script: |
+            cd ~/bot-news
+            pm2 startOrReload ecosystem.config.cjs --update-env
+            pm2 save
