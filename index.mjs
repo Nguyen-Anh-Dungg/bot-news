@@ -8,7 +8,7 @@ import { setTimeout as sleep } from 'node:timers/promises';
 
 const { OLLAMA_API_KEY, OLLAMA_MODEL = 'gpt-oss:120b', TELEGRAM_TOKEN, TELEGRAM_CHAT_ID } = process.env;
 
-const TOP_N = 30;
+const TOP_N = Number(process.env.TOP_N) || 30; // chạy thử: TOP_N=1 cho đỡ tốn quota
 const INTERVAL_HOURS = 2;
 const SEEN_FILE = new URL('seen.json', import.meta.url); // nằm cạnh script, deploy không ghi đè
 const SEEN_MAX = 1000; // ponytail: chỉ nhớ 1000 id gần nhất, bài cũ hơn mà quay lại top sẽ bị gửi lại
@@ -66,7 +66,9 @@ ${SCOPE.map((s) => `- ${s}`).join('\n')}
 
 Với mỗi bài được chọn:
 - "topic": tên chủ đề ngắn bằng tiếng Việt do bạn tự đặt theo nội dung, ví dụ "Lập trình web", "Thuật toán", "AI", "Bảo mật", "Startup". Các bài cùng chủ đề phải dùng đúng cùng một tên. Tổng cộng không quá 7 chủ đề.
-- "summary": 1-2 câu tiếng Việt GIẢI THÍCH bài này nói về cái gì và vì sao đáng chú ý (công cụ/công ty/khái niệm đó là gì, bối cảnh). KHÔNG được chỉ dịch lại tiêu đề. Nếu không chắc nội dung, nói bài có khả năng bàn về điều gì, không bịa chi tiết. Giữ nguyên thuật ngữ kỹ thuật tiếng Anh.`,
+- "summary": 1-2 câu tiếng Việt GIẢI THÍCH bài này nói về cái gì và vì sao đáng chú ý (công cụ/công ty/khái niệm đó là gì, bối cảnh). KHÔNG được chỉ dịch lại tiêu đề. Nếu không chắc nội dung, nói bài có khả năng bàn về điều gì, không bịa chi tiết. Giữ nguyên thuật ngữ kỹ thuật tiếng Anh.
+
+Chỉ trả về JSON thuần, không bọc trong \`\`\`, đúng dạng: {"items":[{"id":123,"topic":"...","summary":"..."}]}`,
         },
         {
           role: 'user',
@@ -78,7 +80,17 @@ Với mỗi bài được chọn:
     }),
   });
   if (!res.ok) throw new Error(`Ollama ${res.status}: ${await res.text()}`);
-  return JSON.parse((await res.json()).message.content).items;
+  return parseItems((await res.json()).message.content);
+}
+
+// Ollama Cloud không luôn tuân theo `format`: có lúc bọc ```json, có lúc đổi tên hoặc bỏ khoá "items"
+function parseItems(content) {
+  const json = JSON.parse(content.replace(/^\s*```(?:json)?\s*|\s*```\s*$/g, ''));
+  const items = Array.isArray(json) ? json : Object.values(json).find(Array.isArray);
+  if (!items) throw new Error(`AI trả sai định dạng: ${content.slice(0, 200)}`);
+  return items.filter(
+    (i) => Number.isInteger(i?.id) && typeof i.topic === 'string' && typeof i.summary === 'string',
+  );
 }
 
 async function sendTelegram(text) {
