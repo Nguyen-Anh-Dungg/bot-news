@@ -2,3 +2,4 @@
 seen.json
 settings.json
 *.log
+node_modules
