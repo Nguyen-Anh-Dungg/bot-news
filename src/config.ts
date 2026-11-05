@@ -15,9 +15,9 @@ export const LOOKBACK_HOURS = 24;
 export const INTERVAL_HOURS = 2;
 export const SEEN_MAX = 1000;
 
-// Nằm ở thư mục gốc cạnh src/, deploy không ghi đè
-export const SEEN_FILE = new URL('../seen.json', import.meta.url);
-export const SETTINGS_FILE = new URL('../settings.json', import.meta.url);
+// Tính theo thư mục đang chạy (pm2 đặt cwd là thư mục bot), deploy không ghi đè
+export const SEEN_FILE = 'seen.json';
+export const SETTINGS_FILE = 'settings.json';
 
 // Phạm vi tin cần lấy. Thêm lĩnh vực mới: thêm một dòng
 export const SCOPE = [

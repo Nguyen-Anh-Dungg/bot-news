@@ -1,7 +1,7 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import { SETTINGS_FILE } from './config.ts';
 
-export async function readJson<T>(file: URL, fallback: T): Promise<T> {
+export async function readJson<T>(file: string, fallback: T): Promise<T> {
   try {
     return JSON.parse(await readFile(file, 'utf8')) as T;
   } catch {
@@ -9,7 +9,7 @@ export async function readJson<T>(file: URL, fallback: T): Promise<T> {
   }
 }
 
-export const writeJson = (file: URL, data: unknown) => writeFile(file, JSON.stringify(data));
+export const writeJson = (file: string, data: unknown) => writeFile(file, JSON.stringify(data));
 
 export interface Settings {
   ai: boolean;
