@@ -4,6 +4,9 @@ import { fetchStories, fmtTime, linkOf, metaOf, type Story } from './hn.ts';
 import { readJson, settings, writeJson } from './store.ts';
 import { sendTelegram } from './telegram.ts';
 
+// Ask HN / Show HN có nhóm cố định, không theo chủ đề AI đặt
+const KIND_TOPIC = { ask: '💬 Ask HN', show: '🚀 Show HN' };
+
 const rawList = (stories: Story[]) =>
   stories.map((s) => `• ${s.title}\n  ${metaOf(s)}\n  ${linkOf(s)}`).join('\n\n');
 
@@ -35,12 +38,12 @@ export async function runDigest(): Promise<void> {
       // Gom theo chủ đề, giữ thứ tự xuất hiện
       const topics = new Map<string, string[]>();
       for (const { topic, summary, story } of picked) {
-        const key = topic.trim();
+        const key = story.kind ? KIND_TOPIC[story.kind] : `📌 ${topic.trim()}`;
         if (!topics.has(key)) topics.set(key, []);
         topics.get(key)!.push(`• ${summary.trim()}\n  ${metaOf(story)}\n  ${linkOf(story)}`);
       }
       // Mỗi tin cách một dòng trống để sendTelegram tách được khi một chủ đề quá dài
-      body = [...topics].map(([topic, lines]) => `📌 ${topic}\n\n${lines.join('\n\n')}`).join('\n\n');
+      body = [...topics].map(([topic, lines]) => `${topic}\n\n${lines.join('\n\n')}`).join('\n\n');
     } catch (err) {
       // Ollama hết quota, lỗi mạng, trả sai định dạng... → gửi tiêu đề gốc
       console.error('AI lỗi, gửi tiêu đề gốc:', (err as Error).message);

@@ -6,6 +6,7 @@ export interface Story {
   url?: string;
   score: number;
   time: number; // giây unix
+  kind?: 'ask' | 'show'; // bài Ask HN / Show HN, theo tag của Algolia
 }
 
 interface AlgoliaHit {
@@ -14,6 +15,7 @@ interface AlgoliaHit {
   url: string | null;
   points: number | null;
   created_at_i: number;
+  _tags: string[];
 }
 
 // Algolia HN Search lọc sẵn theo điểm: gồm cả bài top lẫn bài mới đủ điểm, chỉ tốn một request
@@ -27,12 +29,13 @@ export async function fetchStories(): Promise<Story[]> {
   const { hits } = (await res.json()) as { hits: AlgoliaHit[] };
   return hits
     .filter((h) => h.title)
-    .map((h) => ({
+    .map((h): Story => ({
       id: Number(h.objectID),
       title: h.title!,
       url: h.url ?? undefined,
       score: h.points ?? 0,
       time: h.created_at_i,
+      kind: h._tags.includes('ask_hn') ? 'ask' : h._tags.includes('show_hn') ? 'show' : undefined,
     }))
     .sort((a, b) => b.score - a.score);
 }
